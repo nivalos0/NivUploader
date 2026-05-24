@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        AnnaUploader (Roblox Multi-File Uploader)
 // @namespace   https://github.com/AnnaRoblox
-// @version     7.7
+// @version     7.8
 // @description allows you to upload multiple T-Shirts Decals and audios easily with AnnaUploader
 // @match       https://create.roblox.com/*
 // @match       https://www.roblox.com/users/*/profile*
@@ -41,7 +41,7 @@
     let uniqueCopies  = GM_getValue('uniqueCopies', 1);
     let useDownload   = GM_getValue('useDownload', false);
     let useForceCanvasUpload = GM_getValue('useForceCanvasUpload', false);
-    //  Slip Mode Pixel Method - 'all_pixels', '1-3_random', '1-4_random_single_pixel', or 'random_single_pixel_full_random_color'
+    //  Slip Mode Pixel Method - 'all_pixels', '1-3_random', '1-4_random_single_pixel', 'random_single_pixel_full_random_color', or 'random_resize'
     let slipModePixelMethod = GM_getValue('slipModePixelMethod', '1-3_random');
     let slipModeGenerateAllFirst = GM_getValue('slipModeGenerateAllFirst', false);
 
@@ -386,16 +386,17 @@
         const numChannels = audioBuffer.numberOfChannels;
         const LSB_DELTA = 1 / 32768;
 
-        if (slipModePixelMethod === '1-4_random_single_pixel' || slipModePixelMethod === 'random_single_pixel_full_random_color') {
+        if (slipModePixelMethod === '1-4_random_single_pixel' || slipModePixelMethod === 'random_single_pixel_full_random_color' || slipModePixelMethod === 'random_resize') {
             const channel = Math.floor(Math.random() * numChannels);
             const data = audioBuffer.getChannelData(channel);
             const index = Math.floor(Math.random() * data.length);
 
-            if (slipModePixelMethod === '1-4_random_single_pixel') {
+            if (slipModePixelMethod === 'random_single_pixel_full_random_color') {
+                data[index] = (Math.random() * 2.0) - 1.0;
+            } else {
+                // For '1-4_random_single_pixel' OR as a fallback for 'random_resize'
                 const delta = (Math.random() < 0.5 ? -1 : 1) * (Math.floor(Math.random() * 4) + 1);
                 data[index] = Math.max(-1, Math.min(1, data[index] + delta * LSB_DELTA));
-            } else {
-                data[index] = (Math.random() * 2.0) - 1.0;
             }
         } else {
             for (let ch = 0; ch < numChannels; ch++) {
@@ -443,9 +444,21 @@
             const img = new Image();
             const url = URL.createObjectURL(file);
             img.onload = () => {
+                let targetWidth = resizeW || img.width;
+                let targetHeight = resizeH || img.height;
+
+                if (slipModePixelMethod === 'random_resize') {
+                    // Randomly adjust width and height by +/- 1 to 5 pixels
+                    // This ensures each copy is unique by having different dimensions
+                    targetWidth += (Math.floor(Math.random() * 11) - 5);
+                    targetHeight += (Math.floor(Math.random() * 11) - 5);
+                    targetWidth = Math.max(1, targetWidth);
+                    targetHeight = Math.max(1, targetHeight);
+                }
+
                 const canvas = document.createElement('canvas');
-                canvas.width = resizeW || img.width;
-                canvas.height = resizeH || img.height;
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
 
                 // VITAL: This setting drastically improves performance on Chrome for heavy read/write ops
                 const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -454,7 +467,9 @@
                 // Optimization: Only grab whole image data if we absolutely must (for 'all_pixels' modes)
                 // For single pixel modes, we will only touch one pixel.
 
-                if (slipModePixelMethod === '1-4_random_single_pixel' || slipModePixelMethod === 'random_single_pixel_full_random_color') {
+                if (slipModePixelMethod === 'random_resize') {
+                    // We're done; the size difference is enough for uniqueness
+                } else if (slipModePixelMethod === '1-4_random_single_pixel' || slipModePixelMethod === 'random_single_pixel_full_random_color') {
                     // FAST PATH: Single Pixel Modification
                     // Don't read the whole image! Just pick a random spot.
                     const x = Math.floor(Math.random() * canvas.width);
@@ -1331,6 +1346,11 @@
         optionFullRandomSinglePixel.value = 'random_single_pixel_full_random_color';
         optionFullRandomSinglePixel.textContent = 'Single Random Pixel (Full Color) (Fastest)';
         slipModePixelMethodSelect.appendChild(optionFullRandomSinglePixel);
+
+        const optionRandomResize = document.createElement('option');
+        optionRandomResize.value = 'random_resize';
+        optionRandomResize.textContent = 'Random Resize (Unique Dimensions) (Fastest)';
+        slipModePixelMethodSelect.appendChild(optionRandomResize);
 
         slipModePixelMethodSelect.value = slipModePixelMethod;
 
