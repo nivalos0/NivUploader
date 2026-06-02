@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name        AnnaUploader (Roblox Multi-File Uploader)
 // @namespace   https://github.com/AnnaRoblox
-// @version     7.8
+// @version     7.9
 // @description allows you to upload multiple T-Shirts Decals and audios easily with AnnaUploader
 // @match       https://create.roblox.com/*
 // @match       https://www.roblox.com/users/*/profile*
 // @match       https://www.roblox.com/communities/*
 // @match       https://www.roblox.com/home/*
-// @run-at      document-start
+// @run-at      document-idle
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @require     https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
@@ -41,7 +41,7 @@
     let uniqueCopies  = GM_getValue('uniqueCopies', 1);
     let useDownload   = GM_getValue('useDownload', false);
     let useForceCanvasUpload = GM_getValue('useForceCanvasUpload', false);
-    //  Slip Mode Pixel Method - 'all_pixels', '1-3_random', '1-4_random_single_pixel', 'random_single_pixel_full_random_color', or 'random_resize'
+    //  Slip Mode Pixel Method - 'all_pixels', '1-3_random', '1-4_random_single_pixel', 'random_single_pixel_full_random_color', 'random_single_pixel_alpha_0', or 'random_resize'
     let slipModePixelMethod = GM_getValue('slipModePixelMethod', '1-3_random');
     let slipModeGenerateAllFirst = GM_getValue('slipModeGenerateAllFirst', false);
 
@@ -262,14 +262,35 @@
         return new Promise((resolve, reject) => {
             const img = new Image();
             const url = URL.createObjectURL(file);
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
+            img.onload = async () => {
+                const canvas = (typeof OffscreenCanvas !== 'undefined') ? new OffscreenCanvas(width, height) : document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
-                // Optimize for frequent reads
-                const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                ctx.drawImage(img, 0, 0, width, height);
-                canvas.toBlob(blob => {
+
+                const ctx = canvas.getContext('2d', {
+                    willReadFrequently: true,
+                    colorSpace: 'srgb',
+                    alpha: true
+                });
+
+                ctx.imageSmoothingEnabled = false;
+                if (ctx.hasOwnProperty('imageSmoothingQuality')) ctx.imageSmoothingQuality = 'low';
+                ctx.globalCompositeOperation = 'copy';
+
+                try {
+                    const bitmap = await createImageBitmap(img);
+                    if (img.width === width && img.height === height) {
+                        ctx.drawImage(bitmap, 0, 0);
+                    } else {
+                        ctx.drawImage(bitmap, 0, 0, width, height);
+                    }
+                } catch (e) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                }
+
+                ctx.globalCompositeOperation = 'source-over';
+
+                const callback = blob => {
                     URL.revokeObjectURL(url);
                     if (blob) {
                         const newFileName = baseName(file.name) + '.png';
@@ -277,7 +298,14 @@
                     } else {
                         reject(new Error('Failed to resize image.'));
                     }
-                }, 'image/png');
+                };
+
+                if (canvas.toBlob) {
+                    canvas.toBlob(callback, 'image/png');
+                } else {
+                    const blob = await canvas.convertToBlob({ type: 'image/png' });
+                    callback(blob);
+                }
             };
             img.onerror = (e) => {
                 URL.revokeObjectURL(url);
@@ -386,12 +414,12 @@
         const numChannels = audioBuffer.numberOfChannels;
         const LSB_DELTA = 1 / 32768;
 
-        if (slipModePixelMethod === '1-4_random_single_pixel' || slipModePixelMethod === 'random_single_pixel_full_random_color' || slipModePixelMethod === 'random_resize') {
+        if (slipModePixelMethod === '1-4_random_single_pixel' || slipModePixelMethod === 'random_single_pixel_full_random_color' || slipModePixelMethod === 'random_single_pixel_alpha_0' || slipModePixelMethod === 'random_resize') {
             const channel = Math.floor(Math.random() * numChannels);
             const data = audioBuffer.getChannelData(channel);
             const index = Math.floor(Math.random() * data.length);
 
-            if (slipModePixelMethod === 'random_single_pixel_full_random_color') {
+            if (slipModePixelMethod === 'random_single_pixel_full_random_color' || slipModePixelMethod === 'random_single_pixel_alpha_0') {
                 data[index] = (Math.random() * 2.0) - 1.0;
             } else {
                 // For '1-4_random_single_pixel' OR as a fallback for 'random_resize'
@@ -413,14 +441,37 @@
         return new Promise((resolve, reject) => {
             const img = new Image();
             const url = URL.createObjectURL(file);
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = width || img.width;
-                canvas.height = height || img.height;
-                // Optimize for frequent reads
-                const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob(blob => {
+            img.onload = async () => {
+                const targetW = width || img.width;
+                const targetH = height || img.height;
+                const canvas = (typeof OffscreenCanvas !== 'undefined') ? new OffscreenCanvas(targetW, targetH) : document.createElement('canvas');
+                canvas.width = targetW;
+                canvas.height = targetH;
+
+                const ctx = canvas.getContext('2d', {
+                    willReadFrequently: true,
+                    colorSpace: 'srgb',
+                    alpha: true
+                });
+
+                ctx.imageSmoothingEnabled = false;
+                if (ctx.hasOwnProperty('imageSmoothingQuality')) ctx.imageSmoothingQuality = 'low';
+                ctx.globalCompositeOperation = 'copy';
+
+                try {
+                    const bitmap = await createImageBitmap(img);
+                    if (img.width === canvas.width && img.height === canvas.height) {
+                        ctx.drawImage(bitmap, 0, 0);
+                    } else {
+                        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                    }
+                } catch (e) {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                }
+
+                ctx.globalCompositeOperation = 'source-over';
+
+                const callback = blob => {
                     URL.revokeObjectURL(url);
                     if (blob) {
                         const newFileName = baseName(file.name) + (targetType === 'image/png' ? '.png' : '.jpeg');
@@ -428,7 +479,14 @@
                     } else {
                         reject(new Error('Failed to process image through canvas.'));
                     }
-                }, targetType);
+                };
+
+                if (canvas.toBlob) {
+                    canvas.toBlob(callback, targetType);
+                } else {
+                    const blob = await canvas.convertToBlob({ type: targetType });
+                    callback(blob);
+                }
             };
             img.onerror = (e) => {
                 URL.revokeObjectURL(url);
@@ -443,65 +501,81 @@
         return new Promise(resolve => {
             const img = new Image();
             const url = URL.createObjectURL(file);
-            img.onload = () => {
+            img.onload = async () => {
                 let targetWidth = resizeW || img.width;
                 let targetHeight = resizeH || img.height;
 
                 if (slipModePixelMethod === 'random_resize') {
-                    // Randomly adjust width and height by +/- 1 to 5 pixels
-                    // This ensures each copy is unique by having different dimensions
                     targetWidth += (Math.floor(Math.random() * 11) - 5);
                     targetHeight += (Math.floor(Math.random() * 11) - 5);
                     targetWidth = Math.max(1, targetWidth);
                     targetHeight = Math.max(1, targetHeight);
                 }
 
-                const canvas = document.createElement('canvas');
+                const canvas = (typeof OffscreenCanvas !== 'undefined') ? new OffscreenCanvas(targetWidth, targetHeight) : document.createElement('canvas');
                 canvas.width = targetWidth;
                 canvas.height = targetHeight;
 
-                // VITAL: This setting drastically improves performance on Chrome for heavy read/write ops
-                const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const ctx = canvas.getContext('2d', {
+                    willReadFrequently: true,
+                    colorSpace: 'srgb',
+                    alpha: true
+                });
 
-                // Optimization: Only grab whole image data if we absolutely must (for 'all_pixels' modes)
-                // For single pixel modes, we will only touch one pixel.
+                ctx.imageSmoothingEnabled = false;
+                if (ctx.hasOwnProperty('imageSmoothingQuality')) ctx.imageSmoothingQuality = 'low';
+                ctx.globalCompositeOperation = 'copy';
+
+                try {
+                    const bitmap = await createImageBitmap(img);
+                    if (img.width === canvas.width && img.height === canvas.height) {
+                        ctx.drawImage(bitmap, 0, 0);
+                    } else {
+                        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                    }
+                } catch (e) {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                }
+                ctx.globalCompositeOperation = 'source-over';
 
                 if (slipModePixelMethod === 'random_resize') {
-                    // We're done; the size difference is enough for uniqueness
-                } else if (slipModePixelMethod === '1-4_random_single_pixel' || slipModePixelMethod === 'random_single_pixel_full_random_color') {
-                    // FAST PATH: Single Pixel Modification
-                    // Don't read the whole image! Just pick a random spot.
+                    // Unique by size
+                } else if (slipModePixelMethod === '1-4_random_single_pixel' || slipModePixelMethod === 'random_single_pixel_full_random_color' || slipModePixelMethod === 'random_single_pixel_alpha_0') {
                     const x = Math.floor(Math.random() * canvas.width);
                     const y = Math.floor(Math.random() * canvas.height);
-                    const pixelData = ctx.getImageData(x, y, 1, 1);
-                    const data = pixelData.data;
 
-                    // Ensure we aren't modifying a fully transparent pixel (if relevant), though for anti-dupe it might not matter.
-                    // If transparent, we just shift it slightly off 0
-                    if (data[3] === 0) {
-                        data[3] = 1; // Make it essentially invisible but non-zero alpha
-                    }
+                    const r = Math.floor(Math.random() * 256);
+                    const g = Math.floor(Math.random() * 256);
+                    const b = Math.floor(Math.random() * 256);
+
+                    const singlePixel = ctx.createImageData(1, 1);
+                    const d = singlePixel.data;
 
                     if (slipModePixelMethod === '1-4_random_single_pixel') {
+                        const original = ctx.getImageData(x, y, 1, 1).data;
                         const delta = (Math.random() < 0.5 ? -1 : 1) * (Math.floor(Math.random() * 4) + 1);
-                        data[0] = Math.min(255, Math.max(0, data[0] + delta));
-                        data[1] = Math.min(255, Math.max(0, data[1] + delta));
-                        data[2] = Math.min(255, Math.max(0, data[2] + delta));
-                    } else {
-                         // Full Random Color
-                        data[0] = Math.floor(Math.random() * 256);
-                        data[1] = Math.floor(Math.random() * 256);
-                        data[2] = Math.floor(Math.random() * 256);
+                        d[0] = Math.min(255, Math.max(0, original[0] + delta));
+                        d[1] = Math.min(255, Math.max(0, original[1] + delta));
+                        d[2] = Math.min(255, Math.max(0, original[2] + delta));
+                        d[3] = original[3] === 0 ? 1 : original[3];
+                    } else if (slipModePixelMethod === 'random_single_pixel_full_random_color') {
+                        d[0] = r; d[1] = g; d[2] = b; d[3] = 255;
+                    } else if (slipModePixelMethod === 'random_single_pixel_alpha_0') {
+                        d[0] = r; d[1] = g; d[2] = b; d[3] = 0;
                     }
-                    ctx.putImageData(pixelData, x, y);
+
+                    ctx.putImageData(singlePixel, x, y);
+
+                    // Verification Log
+                    const verify = ctx.getImageData(x, y, 1, 1).data;
+                    console.log(`[AnnaUploader] Slip Mode (${slipModePixelMethod}): Targeted (${x}, ${y}). Expected Alpha: ${d[3]}, Actual: ${verify[3]}`);
+                    if (verify[3] !== d[3]) {
+                        console.warn('[AnnaUploader] WARNING: Browser noise detected! Pixel data may be corrupted by "Fingerprinting Protection".');
+                    }
 
                 } else {
-                    // SLOW PATH: Full Image Iteration (Necessary if user wants 'all_pixels')
-                    // We can't make this instant for 4k images in JS, but 'willReadFrequently' helps a lot.
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     const data = imageData.data;
-
                     for (let i = 0; i < data.length; i += 4) {
                         if (data[i + 3] !== 0) {
                             let delta;
@@ -521,12 +595,19 @@
                     ctx.putImageData(imageData, 0, 0);
                 }
 
-                canvas.toBlob(blob => {
+                const callback = blob => {
                     URL.revokeObjectURL(url);
                     const ext = 'png';
                     const newName = `${origBase}_${copyIndex}.${ext}`;
                     resolve(new File([blob], newName, { type: 'image/png' }));
-                }, 'image/png');
+                };
+
+                if (canvas.toBlob) {
+                    canvas.toBlob(callback, 'image/png');
+                } else {
+                    const blob = await canvas.convertToBlob({ type: 'image/png' });
+                    callback(blob);
+                }
             };
             img.src = url;
         });
@@ -539,6 +620,7 @@
         const copies = useMakeUnique ? uniqueCopies : 1;
         const resizeActive = enableResize && Number(resizeWidth) > 0 && Number(resizeHeight) > 0;
         const isAudio = assetType === ASSET_TYPE_AUDIO;
+        const processingTasks = [];
 
         if (massMode) {
             displayMessage('Processing files to add to queue...', 'info');
@@ -1346,6 +1428,11 @@
         optionFullRandomSinglePixel.value = 'random_single_pixel_full_random_color';
         optionFullRandomSinglePixel.textContent = 'Single Random Pixel (Full Color) (Fastest)';
         slipModePixelMethodSelect.appendChild(optionFullRandomSinglePixel);
+
+        const optionAlpha0SinglePixel = document.createElement('option');
+        optionAlpha0SinglePixel.value = 'random_single_pixel_alpha_0';
+        optionAlpha0SinglePixel.textContent = 'Single Random Pixel (Random Color, Alpha 0) (Fastest)';
+        slipModePixelMethodSelect.appendChild(optionAlpha0SinglePixel);
 
         const optionRandomResize = document.createElement('option');
         optionRandomResize.value = 'random_resize';
