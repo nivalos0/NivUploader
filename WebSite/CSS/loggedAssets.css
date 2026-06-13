@@ -1,0 +1,70 @@
+/* Body */
+body {
+  font-family: Arial;
+  padding: auto;
+  background-color: black;
+}
+
+/* Heading 1 */
+h1 {
+  margin-bottom: 15px;
+  color: blue;
+}
+
+/* UL */
+ul {
+  padding: 0px;
+}
+
+/* LI */
+li {
+  margin-bottom: auto;
+  padding: 10px;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* IMG */
+img {
+  max-height: 60px;
+  border: auto;
+  border-radius: auto;
+  object-fit: contain;
+  background-color: #333;
+}
+
+/* .asset-info (will do later) */
+
+/* A & A:hover */
+
+a {
+  color: #7cf;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+a:hover {
+  color: lime;
+  text-decoration: underline;
+  font-weight: italic;
+}
+
+/* .asset-name (will do later) */
+
+/* Button & Button:hover */
+button {
+  margin-bottom: auto;
+  color: #fff;
+  background-color: #3a3a3a;
+  border: 1px;
+  padding: auto;
+  cursor: pointer;
+}
+
+button:hover {
+  color: #bbb;
+  background-color: #505050;
+}
