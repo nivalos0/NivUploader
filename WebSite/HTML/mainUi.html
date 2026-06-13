@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title>NivUploader Main UI</title>
+    <link rel="stylesheet" href="../CSS/mainUi.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../../Scripts/openerScript.js"></script>
+    <script src="../../Scripts/closerScript.js"></script>
+  </head>
+  <body>
+    <div id="uicon" class="ui-container">
+        <button onclick="closer('uicon')" class="uploader-close-btn" title="Close Panel">×</button>
+        <h3>NivUploader</h3>
+        
+        <button onclick="openSettings()" class="uploader-btn">⚙️ Open Settings</button>
+        <button class="uploader-btn uploader-btn-start">🚀 Start Upload</button>
+        <input type="number" class="copies-input" placeholder="Number of copies..." value="1">
+        <div class="hint">Paste images (Ctrl+V) to queue/upload or select files</div>
+        <div class="status">Status: Idle</div>
+    </div>
+    <div id="settingsui" class="settings-modal">
+        <button onclick="closer('settingsui')" class="uploader-close-btn" title="Close Settings">×</button>
+        <h3>Uploader Settings</h3>
+        
+        <label for="desc">Asset Description:</label>
+        <textarea id="desc" placeholder="Enter asset description..."></textarea>
+        
+        <label for="pixel-method">Pixel Slip Method:</label>
+        <select id="pixel-method">
+            <option value="random">Randomize Pixel Edge</option>
+            <option value="corner">Corner Tint</option>
+        </select>
+        
+        <div class="resize-container">
+            <label>Forced Dimensions:</label>
+            <div class="input-row">
+                <input type="number" class="dimension-input" placeholder="W">
+                <span>x</span>
+                <input type="number" class="dimension-input" placeholder="H">
+            </div>
+        </div>
+        
+        <button class="uploader-btn uploader-btn-start">Save Configurations</button>
+    </div>
+    <div id="custompromptel" class="custom-prompt">
+        <div>Please enter a custom identifier/name for your upload queue:</div>
+        <input type="text" placeholder="Type name here...">
+        <div class="button-container">
+            <button class="uploader-btn uploader-btn-start">Confirm</button>
+            <button onclick="closer('custompromptel')" class="uploader-btn">Cancel</button>
+        </div>
+    </div>
+    <div class="toast-notification">
+        Done! Queue processed successfully.
+    </div>
+  </body>
+</html>
