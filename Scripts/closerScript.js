@@ -1,4 +1,4 @@
 // Closer
-function close(elementid) {
+function closer(elementid) {
   document.getElementById(elementid).remove();
 }
