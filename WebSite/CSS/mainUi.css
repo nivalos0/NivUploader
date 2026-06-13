@@ -1,0 +1,70 @@
+/* Body */
+body {
+  font-family: Arial;
+  padding: auto;
+  background-color: black;
+}
+
+/* Uploader Button Stuff */
+.uploader-btn {
+  padding: 10px;
+  cursor: pointer;
+  color: #fff;
+  background-color: #3a3a3a;
+  border: auto;
+  border-radius: auto;
+  font-size: auto;
+  transition: background 0.2s ease-in-out;
+}
+
+.uploader-btn:hover {
+  background-color: #505050;
+  text-decoration: underline;
+}
+
+.uploader-btn-start {
+  background-color: #28a745;
+  border: auto;
+}
+
+.uploader-btn-start:hover {
+  background-color: #218838;
+  text-decoration: underline;
+}
+
+.uploader-close-btn {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #e0e0e0;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 5px;
+  transition: color 0.2s;
+}
+
+.uploader-close-btn:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* Main UI */
+.ui-container {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 10px;
+  background-color: #1a1a1a;
+  border: auto;
+  color: #e0e0e0;
+  padding: 15px;
+  z-index: 10000;
+  border-radius: auto;
+  display: flex;
+  flex-direction: column;
+  gap: auto;
+  transition: top 0.3s ease-in-out;
+}
