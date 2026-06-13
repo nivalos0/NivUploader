@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <title>NivUploader Settings UI</title>
+    <link rel="stylesheet" href="../CSS/settingsUi.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <div class="settings-modal">
+        <button class="settings-close-btn" title="Close Settings">×</button>
+        <h3>NivUploader Settings UI</h3>
+        <button class="uploader-btn">Use default Name: Off</button>
+        <button class="uploader-btn">Asset Logging: Off</button>
+        <div>
+            <label for="desc-input">Asset Description:</label>
+            <textarea id="desc-input" rows="3">Uploaded Using AnnaUploader</textarea>
+        </div>
+        <div>
+            <label for="pixel-method-select">Slip Mode Pixel Method:</label>
+            <select id="pixel-method-select">
+                <option value="all_pixels">All Pixels (±1) [Slow on >300px]</option>
+                <option value="1-3_random" selected>Random Pixels (±1-3) [Slow on >300px]</option>
+                <option value="1-4_random_single_pixel">Single Random Pixel (Fastest)</option>
+                <option value="random_single_pixel_full_random_color">Single Random Pixel (Full Color) (Fastest)</option>
+                <option value="random_single_pixel_alpha_0">Single Random Pixel (Random Color, Alpha 0) (Fastest)</option>
+                <option value="random_resize">Random Resize (Unique Dimensions) (Fastest)</option>
+            </select>
+        </div>
+        <button class="uploader-btn uploader-btn-sub">Slip Mode: Generate All First: Off</button>
+        <button class="uploader-btn">Force Upload: Off</button>
+        <div class="resize-container">
+            <button class="uploader-btn">Resize Images: Off</button>
+            
+            <div class="input-row">
+                <input type="number" class="dimension-input" value="300" min="1" placeholder="Width" disabled>
+                <span class="x-label">×</span>
+                <input type="number" class="dimension-input" value="300" min="1" placeholder="Height" disabled>
+                <span class="px-label">px</span>
+            </div>
+            
+            <div class="desc-text">If enabled, images will be resized before upload. Applies to Slip Mode too.</div>
+        </div>
+        <button class="uploader-btn">Show Logged Assets</button>
+    </div>
+  </body>
+</html>
